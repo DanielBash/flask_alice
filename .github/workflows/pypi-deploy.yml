@@ -31,7 +31,7 @@ jobs:
       - name: Bump version
         id: version
         run: |
-          import os, re, toml
+          import os, toml
           msg = "${{ github.event.head_commit.message }}"
           if '[MAJOR]' in msg:
               bump = 'major'
@@ -74,8 +74,23 @@ jobs:
           git commit -m "Bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
           git push
 
+      - name: Create and push tag
+        run: |
+          git tag "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+
       - name: Build distributions
         run: python -m build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.new_version }}"
+          name: "Release v${{ steps.version.outputs.new_version }}"
+          body: "Presenting ${{ steps.version.outputs.new_version }} project version."
+          draft: false
+          prerelease: false
+          generate_release_notes: true

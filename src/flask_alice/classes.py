@@ -3,4 +3,4 @@ class TestClass:
         print('Class initialized')
 
     def test(self):
-        print('Test function executed!')
+        print('Test function executed 2!')
