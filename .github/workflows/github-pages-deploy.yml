@@ -37,7 +37,7 @@ jobs:
 
       - name: Generate documentation with pdoc
         run: |
-          pdoc src/mymodule -o site
+          pdoc src/flask_alice -o site
 
       - name: Upload static files as artifact
         uses: actions/upload-pages-artifact@v3
