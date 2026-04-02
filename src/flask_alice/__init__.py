@@ -11,4 +11,5 @@
 Автор: DanielBash
 """
 
-from .classes import *
+from . import classes
+from .classes.application import Dialogs
