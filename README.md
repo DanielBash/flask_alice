@@ -1,14 +1,14 @@
 # Flask_Alice
 
-> Python pypi package, for easy Yandex.Dialogs project management. Extension for flask python package
+> Пайтон-модуль, призванный облегчить разработку навыков для Яндекс.Алисы: Яндекс.Диалогов
 
-## Installation
-To download project, simply run:
+## Установка
+Чтобы установить модуль, достаточно выполнить:
 
 ```bash
 pip install flask_alice
 ```
 
-## Features
+## Использование
 
-This package is still in active development. Documentation on its capabilities will arrive soon.
+Данный модуль в активной разработке. Полный список возможностей пока недоступен.
