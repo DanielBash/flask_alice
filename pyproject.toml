@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flask_alice"
-version = "0.0.2"
+version = "0.0.3"
 description = "Расширение модуля flask, для разработки навыков Яндекс.Алисы"
 readme = "README.md"
 requires-python = ">=3.8"
