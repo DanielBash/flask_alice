@@ -5,16 +5,20 @@ app = Flask(__name__)
 dialogs = flask_alice.Dialogs(app)
 
 
-@dialogs.on_text("привет")
-def hello(req):
-    return flask_alice.YandexDialogResponse(text="Здравствуйте!", tts="Здравствуйте!")
+@dialogs.on_new_session()
+def greetings():
+    return flask_alice.AliceResponse(text="Приветствую в навыке!")
 
+
+@dialogs.on_meaning("Как дела?", threshold=0.85)
+def greetings():
+    return flask_alice.AliceResponse(text="Норм")
 
 @dialogs.on_not_found()
-def fallback(req):
-    return flask_alice.YandexDialogResponse(text="Я не понял команду.", tts="Я не понял команду.")
+def fallback():
+    return flask_alice.AliceResponse(text="Я не понял команду.")
 
 
 PORT = 5000
-HOST = '0.0.0.0'
+HOST = '127.0.0.1'
 app.run(host=HOST, port=PORT, debug=True)

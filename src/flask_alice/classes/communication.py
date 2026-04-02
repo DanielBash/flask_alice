@@ -274,7 +274,7 @@ class YandexRequestBody:
 
 
 @dataclass
-class YandexDialogIncomingRequest:
+class AliceRequest:
     meta: Optional[YandexMeta] = None
     request: Optional[YandexRequestBody] = None
     session: Optional[YandexSession] = None
@@ -284,7 +284,7 @@ class YandexDialogIncomingRequest:
     raw: JSONDict = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "YandexDialogIncomingRequest":
+    def from_dict(cls, data: Dict[str, Any]) -> "AliceRequest":
         if not isinstance(data, dict):
             raise TypeError("from_dict ожидает dict")
 
@@ -303,7 +303,7 @@ class YandexDialogIncomingRequest:
         )
 
     @classmethod
-    def from_json(cls, data: str, encoding: str = "utf-8") -> "YandexDialogIncomingRequest":
+    def from_json(cls, data: str, encoding: str = "utf-8") -> "AliceRequest":
         if not isinstance(data, str):
             raise TypeError("from_json ожидает строку JSON")
         parsed = json.loads(data)
@@ -312,7 +312,7 @@ class YandexDialogIncomingRequest:
         return cls.from_dict(parsed)
 
     @classmethod
-    def from_flask_request(cls, flask_request: Any) -> "YandexDialogIncomingRequest":
+    def from_flask_request(cls, flask_request: Any) -> "AliceRequest":
         """
         Поддерживает:
         - flask.request
@@ -565,7 +565,7 @@ class YandexShowItemMeta:
         return _clean_dict(data)
 
 
-class YandexDialogResponse:
+class AliceResponse:
     """
     Универсальный builder для ответов Яндекс.Диалогов.
     """
@@ -578,6 +578,9 @@ class YandexDialogResponse:
             tts: str = "",
             end_session: bool = False,
     ) -> None:
+        if tts == '':
+            tts = text
+
         self.text = text
         self.tts = tts
         self.end_session = end_session
@@ -594,15 +597,15 @@ class YandexDialogResponse:
         self.directives: JSONDict = {}
         self.show_item_meta: Optional[YandexShowItemMeta] = None
 
-    def set_text(self, text: str) -> "YandexDialogResponse":
+    def set_text(self, text: str) -> "AliceResponse":
         self.text = text
         return self
 
-    def set_tts(self, tts: str) -> "YandexDialogResponse":
+    def set_tts(self, tts: str) -> "AliceResponse":
         self.tts = tts
         return self
 
-    def set_end_session(self, value: bool) -> "YandexDialogResponse":
+    def set_end_session(self, value: bool) -> "AliceResponse":
         self.end_session = value
         return self
 
@@ -612,11 +615,11 @@ class YandexDialogResponse:
             payload: Optional[JSONDict] = None,
             url: Optional[str] = None,
             hide: bool = False,
-    ) -> "YandexDialogResponse":
+    ) -> "AliceResponse":
         self.buttons.append(YandexButton(title=title, payload=payload, url=url, hide=hide))
         return self
 
-    def clear_buttons(self) -> "YandexDialogResponse":
+    def clear_buttons(self) -> "AliceResponse":
         self.buttons = []
         return self
 
@@ -628,7 +631,7 @@ class YandexDialogResponse:
             button_text: Optional[str] = None,
             button_url: Optional[str] = None,
             button_payload: Optional[JSONDict] = None,
-    ) -> "YandexDialogResponse":
+    ) -> "AliceResponse":
         button = None
         if button_text is not None:
             button = YandexCardButton(text=button_text, url=button_url, payload=button_payload)
@@ -648,7 +651,7 @@ class YandexDialogResponse:
             footer_button_text: Optional[str] = None,
             footer_button_url: Optional[str] = None,
             footer_button_payload: Optional[JSONDict] = None,
-    ) -> "YandexDialogResponse":
+    ) -> "AliceResponse":
         parsed_items: List[YandexImageItem] = []
         for item in items:
             button = item.get("button")
@@ -684,7 +687,7 @@ class YandexDialogResponse:
         )
         return self
 
-    def set_image_gallery(self, items: List[Dict[str, Any]]) -> "YandexDialogResponse":
+    def set_image_gallery(self, items: List[Dict[str, Any]]) -> "AliceResponse":
         parsed_items: List[YandexImageItem] = []
         for item in items:
             button = item.get("button")
@@ -707,7 +710,7 @@ class YandexDialogResponse:
         self.card = YandexImageGalleryCard(items=parsed_items)
         return self
 
-    def set_card_raw(self, card: JSONDict) -> "YandexDialogResponse":
+    def set_card_raw(self, card: JSONDict) -> "AliceResponse":
         """
         Позволяет передать любую карточку как есть.
         Полезно для расширений или нестандартных сценариев.
@@ -715,15 +718,15 @@ class YandexDialogResponse:
         self.card = card
         return self
 
-    def set_session_state(self, value: JSONDict) -> "YandexDialogResponse":
+    def set_session_state(self, value: JSONDict) -> "AliceResponse":
         self.session_state = value
         return self
 
-    def set_user_state_update(self, value: JSONDict) -> "YandexDialogResponse":
+    def set_user_state_update(self, value: JSONDict) -> "AliceResponse":
         self.user_state_update = value
         return self
 
-    def set_application_state(self, value: JSONDict) -> "YandexDialogResponse":
+    def set_application_state(self, value: JSONDict) -> "AliceResponse":
         self.application_state = value
         return self
 
@@ -731,22 +734,22 @@ class YandexDialogResponse:
             self,
             name: str,
             value: Optional[JSONDict] = None,
-    ) -> "YandexDialogResponse":
+    ) -> "AliceResponse":
         event: JSONDict = {"name": name}
         if value is not None:
             event["value"] = value
         self.analytics_events.append(event)
         return self
 
-    def clear_analytics(self) -> "YandexDialogResponse":
+    def clear_analytics(self) -> "AliceResponse":
         self.analytics_events = []
         return self
 
-    def start_account_linking(self) -> "YandexDialogResponse":
+    def start_account_linking(self) -> "AliceResponse":
         self.directives["start_account_linking"] = {}
         return self
 
-    def set_directive_raw(self, name: str, value: Any = None) -> "YandexDialogResponse":
+    def set_directive_raw(self, name: str, value: Any = None) -> "AliceResponse":
         self.directives[name] = {} if value is None else value
         return self
 
@@ -757,7 +760,7 @@ class YandexDialogResponse:
             title: Optional[str] = None,
             title_tts: Optional[str] = None,
             expiration_date: Optional[str] = None,
-    ) -> "YandexDialogResponse":
+    ) -> "AliceResponse":
         self.show_item_meta = YandexShowItemMeta(
             content_id=content_id,
             publication_date=publication_date,
@@ -820,34 +823,6 @@ class YandexDialogResponse:
             mimetype="application/json; charset=utf-8",
         )
 
-    # --- Удобные альтернативные конструкторы ---
-
     @classmethod
-    def simple(cls, text: str, tts: Optional[str] = None, end_session: bool = False) -> "YandexDialogResponse":
+    def simple(cls, text: str, tts: Optional[str] = None, end_session: bool = False) -> "AliceResponse":
         return cls(text=text, tts=tts or text, end_session=end_session)
-
-
-if __name__ == "__main__":
-    resp = (
-        YandexDialogResponse(text="Здравствуйте! Это мы, хороводоведы.", tts="Здравствуйте! Это мы, хоров+одо в+еды.")
-        .add_button("Продолжить", payload={"step": 2}, hide=True)
-        .set_session_state({"value": 10})
-        .set_user_state_update({"value": 42})
-        .set_application_state({"value": 37})
-        .add_analytics_event("custom event")
-    )
-
-    print(resp.to_json(indent=2))
-
-    resp2 = (
-        YandexDialogResponse(text="Книга Чародеи")
-        .set_big_image(
-            image_id="1027858/46r960da47f60207e924",
-            title="Книга Чародеи",
-            description="Описание изображения.",
-            button_text="Открыть",
-            button_url="https://example.com/",
-            button_payload={"id": 1},
-        )
-        .start_account_linking()
-    )

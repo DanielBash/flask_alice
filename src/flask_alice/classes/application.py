@@ -1,22 +1,34 @@
+import inspect
 import re
 import typing
 
 import flask
 from flask import Flask, Blueprint
+from sentence_transformers import SentenceTransformer, util
 
-from .communication import YandexDialogIncomingRequest, YandexDialogResponse
+from .communication import AliceRequest, AliceResponse
+
+
+def pass_if_need(func, req):
+    sig = inspect.signature(func)
+    params = sig.parameters
+
+    if len(params) > 0:
+        return func(req)
+    else:
+        return func()
 
 
 class Handler:
     def __init__(self, func, condition):
-        self.handler_func: typing.Callable[[YandexDialogIncomingRequest], YandexDialogResponse] = func
-        self.condition: typing.Callable[[YandexDialogIncomingRequest], bool] = condition
+        self.handler_func: typing.Callable[[AliceRequest], AliceResponse] = func
+        self.condition: typing.Callable[[AliceRequest], bool] = condition
 
-    def validate(self, request: YandexDialogIncomingRequest) -> bool:
+    def validate(self, request: AliceRequest) -> bool:
         return self.condition(request)
 
-    def __call__(self, request: YandexDialogIncomingRequest) -> YandexDialogResponse:
-        return self.handler_func(request)
+    def __call__(self, request: AliceRequest) -> AliceResponse:
+        return pass_if_need(self.handler_func, request)
 
 
 def _handler_type(condition_method):
@@ -42,7 +54,7 @@ class Dialogs:
         self.webhook_url = webhook_url
         self.handlers: list[Handler] = []
         self.not_found_handler: typing.Optional[
-            typing.Callable[[YandexDialogIncomingRequest], YandexDialogResponse]] = None
+            typing.Callable[[AliceRequest], AliceResponse]] = None
 
         self._setup()
 
@@ -61,7 +73,7 @@ class Dialogs:
         self.app.register_blueprint(bp)
 
     def _handle_request(self) -> flask.Response:
-        req = YandexDialogIncomingRequest.from_flask_request(flask.request)
+        req = AliceRequest.from_flask_request(flask.request)
 
         self.app.logger.info("Incoming request: %s", req.command)
 
@@ -69,16 +81,16 @@ class Dialogs:
 
         if handler is None:
             if self.not_found_handler is not None:
-                response_data = self.not_found_handler(req)
+                response_data = pass_if_need(self.not_found_handler, req)
             else:
-                response_data = YandexDialogResponse(text="Привет!", tts="Привет!")
+                response_data = AliceResponse(text="Привет!", tts="Привет!")
         else:
-            response_data = handler(req)
+            response_data = pass_if_need(handler, req)
 
         self.app.logger.info("Response: %s", response_data)
         return response_data.to_flask_response()
 
-    def _find_handler(self, request: YandexDialogIncomingRequest) -> typing.Optional[typing.Callable]:
+    def _find_handler(self, request: AliceRequest) -> typing.Optional[typing.Callable]:
         for handler in self.handlers:
             if handler.validate(request):
                 return handler
@@ -94,13 +106,21 @@ class Dialogs:
     @_handler_type
     def on_text(
             self,
-            request: YandexDialogIncomingRequest,
+            request: AliceRequest,
             text: str,
             regex: bool = False,
             flags: int = 0,
-    ) -> bool:
-        command = request.command or ""
+    ) -> bool | typing.Callable:
+        command = request.original_utterance or ""
 
         if regex:
             return re.fullmatch(text, command, flags) is not None
         return command == text
+
+    @_handler_type
+    def on_new_session(
+            self,
+            request: AliceRequest,
+    ) -> bool | typing.Callable:
+
+        return request.session.new

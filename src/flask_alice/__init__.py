@@ -11,5 +11,5 @@
 Автор: DanielBash
 """
 
-from .classes.communication import YandexDialogIncomingRequest, YandexDialogResponse
+from .classes.communication import AliceRequest, AliceResponse
 from .classes.application import Dialogs
