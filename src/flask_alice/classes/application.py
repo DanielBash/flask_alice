@@ -1,11 +1,8 @@
 import inspect
 import re
 import typing
-
 import flask
 from flask import Flask, Blueprint
-from sentence_transformers import SentenceTransformer, util
-
 from .communication import AliceRequest, AliceResponse
 
 
