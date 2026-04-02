@@ -1,0 +1,81 @@
+name: Publish to PyPI on version bump
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  publish:
+    if: |
+      contains(github.event.head_commit.message, '[MAJOR]') ||
+      contains(github.event.head_commit.message, '[MINOR]') ||
+      contains(github.event.head_commit.message, '[PATCH]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install build & toml
+        run: pip install build toml
+
+      - name: Bump version
+        id: version
+        run: |
+          import os, re, toml
+          msg = "${{ github.event.head_commit.message }}"
+          if '[MAJOR]' in msg:
+              bump = 'major'
+          elif '[MINOR]' in msg:
+              bump = 'minor'
+          elif '[PATCH]' in msg:
+              bump = 'patch'
+          else:
+              exit(0)
+
+          with open('pyproject.toml') as f:
+              data = toml.load(f)
+          version = data['project']['version']
+          major, minor, patch = map(int, version.split('.'))
+
+          if bump == 'major':
+              major += 1
+              minor = 0
+              patch = 0
+          elif bump == 'minor':
+              minor += 1
+              patch = 0
+          else:   # patch
+              patch += 1
+
+          new_version = f"{major}.{minor}.{patch}"
+          data['project']['version'] = new_version
+          with open('pyproject.toml', 'w') as f:
+              toml.dump(data, f)
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"new_version={new_version}\n")
+        shell: python
+
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml
+          git commit -m "Bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git push
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

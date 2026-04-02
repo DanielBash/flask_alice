@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flask_alice"
+version = "0.0.0"
+description = "A Flask extension for easy management of Yandex.Dialogs"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "Daniel", email = "daniel@hell-0.ru"}]
+dependencies = [
+    "Flask>=2.0",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Framework :: Flask",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/DanielBash/flask_alice"
+"Bug Tracker" = "https://github.com/DanielBash/flask_alice/issues"
+
+[project.optional-dependencies]
+dev = ["pytest", "build", "twine"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
