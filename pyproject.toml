@@ -8,7 +8,7 @@ version = "0.1.1"
 description = "Расширение модуля flask, для разработки навыков Яндекс.Алисы"
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = [ "Flask>=2.0",]
+dependencies = [ "Flask>=2.0", "ngram"]
 classifiers = [ "Development Status :: 3 - Alpha", "License :: OSI Approved :: MIT License", "Framework :: Flask", "Programming Language :: Python :: 3",]
 [[project.authors]]
 name = "Daniel"

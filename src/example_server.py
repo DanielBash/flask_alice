@@ -10,7 +10,7 @@ def greetings():
     return flask_alice.AliceResponse(text="Приветствую в навыке!")
 
 
-@dialogs.on_meaning("Как дела?", threshold=0.85)
+@dialogs.on_meaning(["Как дела?", "Как поживаешь?", "Что как?"], threshold=0.85)
 def greetings():
     return flask_alice.AliceResponse(text="Норм")
 

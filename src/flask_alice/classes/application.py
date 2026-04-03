@@ -4,6 +4,8 @@ import typing
 import flask
 from flask import Flask, Blueprint
 from .communication import AliceRequest, AliceResponse
+import re
+import ngram
 
 
 def pass_if_need(func, req):
@@ -14,6 +16,21 @@ def pass_if_need(func, req):
         return func(req)
     else:
         return func()
+
+
+def normalize(text):
+    text = text.lower()
+    text = re.sub(r'[^\w\s]', '', text)
+    return text.strip()
+
+def are_similar(user_input, candidates):
+    user_input = normalize(user_input)
+    
+    scores = [
+        ngram.NGram.compare(user_input, normalize(c))
+        for c in candidates
+    ]
+    return max(scores) if scores else 0.0
 
 
 class Handler:
@@ -104,15 +121,32 @@ class Dialogs:
     def on_text(
             self,
             request: AliceRequest,
-            text: str,
+            text: str | list[str],
             regex: bool = False,
             flags: int = 0,
+            remove_symbols: bool = True,
     ) -> bool | typing.Callable:
-        command = request.original_utterance or ""
+        command = request.command or ""
 
-        if regex:
-            return re.fullmatch(text, command, flags) is not None
-        return command == text
+        def normalize(s: str) -> str:
+            if not remove_symbols:
+                return s
+            s = s.lower()
+            return re.sub(r'[^\w\s]', '', s).strip()
+
+        command_norm = normalize(command)
+
+        texts = text if isinstance(text, list) else [text]
+
+        for t in texts:
+            if regex:
+                if re.fullmatch(t, command, flags):
+                    return True
+            else:
+                if command_norm == normalize(t):
+                    return True
+
+        return False
 
     @_handler_type
     def on_new_session(
@@ -121,3 +155,21 @@ class Dialogs:
     ) -> bool | typing.Callable:
 
         return request.session.new
+    
+    @_handler_type
+    def on_ngram(
+            self,
+            request: AliceRequest,
+            synonims: list,
+            threshold: float = 0.75,
+    ) -> bool | typing.Callable:
+        return are_similar(request.command, synonims)
+    
+    @_handler_type
+    def on_exact(
+            self,
+            request: AliceRequest,
+            text: str,
+    ) -> bool | typing.Callable:
+
+        return request.original_utterance == text
