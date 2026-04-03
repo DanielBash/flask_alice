@@ -1,24 +1,33 @@
 from flask import Flask
 import flask_alice
+from nltk.chat.eliza import eliza_chatbot
+
 
 app = Flask(__name__)
 dialogs = flask_alice.Dialogs(app)
 
 
 @dialogs.on_new_session()
-def greetings():
-    return flask_alice.AliceResponse(text="Приветствую в навыке!")
+def new_session(req):
+    return flask_alice.AliceResponse(
+        text="Hello. Tell me whats bothering you."
+    )
 
 
-@dialogs.on_meaning(["Как дела?", "Как поживаешь?", "Что как?"], threshold=0.85)
-def greetings():
-    return flask_alice.AliceResponse(text="Норм")
+@dialogs.on_text(r".*", regex=True)
+def eliza_handler(req):
+    user_text = req.original_utterance
 
-@dialogs.on_not_found()
-def fallback():
-    return flask_alice.AliceResponse(text="Я не понял команду.")
+    response = eliza_chatbot.respond(user_text)
+
+    if not response:
+        response = "Please, continue."
+
+    return flask_alice.AliceResponse(text=response)
 
 
 PORT = 5000
-HOST = '127.0.0.1'
-app.run(host=HOST, port=PORT, debug=True)
+HOST = "127.0.0.1"
+
+if __name__ == "__main__":
+    app.run(host=HOST, port=PORT, debug=True)
