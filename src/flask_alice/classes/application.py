@@ -49,7 +49,7 @@ class Handler:
 
 
 def _handler_type(condition_method):
-    def registration_method(self, *args, order: int = 0, **kwargs):  # 👈 new param
+    def registration_method(self, *args, order: int = 0, **kwargs):
         def decorator(user_func):
             def condition(request):
                 return condition_method(self, request, *args, **kwargs)
@@ -95,7 +95,7 @@ class Dialogs:
     def _handle_request(self) -> flask.Response:
         req = AliceRequest.from_flask_request(flask.request)
 
-        self.app.logger.info("Incoming request: %s", req.command)
+        self.app.logger.info(f"YandexRequest: {req.command}")
 
         handler = self._find_handler(req)
 
@@ -103,11 +103,10 @@ class Dialogs:
             if self.not_found_handler is not None:
                 response_data = pass_if_need(self.not_found_handler, req)
             else:
-                response_data = AliceResponse(text="Привет!", tts="Привет!")
+                response_data = AliceResponse(text="Ваш запрос мне непонятен.")
         else:
             response_data = pass_if_need(handler, req)
 
-        self.app.logger.info("Response: %s", response_data)
         return response_data.to_flask_response()
 
     def _find_handler(self, request: AliceRequest) -> typing.Optional[typing.Callable]:

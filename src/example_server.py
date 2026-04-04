@@ -2,7 +2,6 @@ from flask import Flask
 import flask_alice
 from nltk.chat.eliza import eliza_chatbot
 
-
 app = Flask(__name__)
 dialogs = flask_alice.Dialogs(app)
 
@@ -14,12 +13,14 @@ def new_session(req):
         text="Hello. Tell me whats bothering you."
     )
 
+
 @dialogs.on_condition('request.session.data["test"] == "already_greeted"')
 def on_greeted(req):
     req.session.data["test"] = None
     return flask_alice.AliceResponse(text="Oh, forgot to tell you, i am ELISA!")
 
-@dialogs.on_text(r".*", regex=True, order=999)
+
+@dialogs.on_text([r".*"], regex=True, order=999)
 def eliza_handler(req):
     user_text = req.original_utterance
 
