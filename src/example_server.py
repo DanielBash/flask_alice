@@ -17,7 +17,7 @@ def new_session(req):
 @dialogs.on_condition('request.session.data["test"] == "already_greeted"')
 def on_greeted(req):
     req.session.data["test"] = None
-    return flask_alice.AliceResponse(text="Oh, forgot to tell you, i am ELISA")
+    return flask_alice.AliceResponse(text="Oh, forgot to tell you, i am ELISA!")
 
 @dialogs.on_text(r".*", regex=True, order=999)
 def eliza_handler(req):
