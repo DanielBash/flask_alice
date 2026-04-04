@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 JSONDict = Dict[str, Any]
+USER_SESSIONS = {}
 
 
 def _ensure_dict(value: Any) -> JSONDict:
@@ -134,6 +135,14 @@ class YandexSession:
             new=data.get("new"),
             extra={k: _deep_copy_json(v) for k, v in data.items() if k not in known},
         )
+
+    @property
+    def data(self):
+        global USER_SESSIONS
+        
+        if not self.user_id in USER_SESSIONS:
+            USER_SESSIONS[self.user_id] = {}
+        return USER_SESSIONS[self.user_id]
 
 
 @dataclass
@@ -652,6 +661,7 @@ class AliceResponse:
             footer_button_url: Optional[str] = None,
             footer_button_payload: Optional[JSONDict] = None,
     ) -> "AliceResponse":
+
         parsed_items: List[YandexImageItem] = []
         for item in items:
             button = item.get("button")
