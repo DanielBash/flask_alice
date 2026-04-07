@@ -109,7 +109,7 @@ class Dialogs:
 
         self.app.register_blueprint(bp)
 
-    def find_handler(self, handler_name):
+    def find_handler(self, handler_name) -> Optional[Handler]:
         for handler in self.handlers:
             if handler.name == handler_name:
                 return handler
@@ -141,6 +141,15 @@ class Dialogs:
     def on_not_found(self):
         def decorator(user_func):
             self.not_found_handler = user_func
+            return user_func
+
+        return decorator
+
+    def on_or(self):
+        def decorator(user_func):
+            handler = self.find_handler(user_func.__name__)
+            handler.add_or()
+
             return user_func
 
         return decorator
