@@ -1,7 +1,7 @@
 import inspect
 import re
 import typing
-
+from typing import Any, List, Optional
 import flask
 import ngram
 from flask import Flask, Blueprint
@@ -21,28 +21,38 @@ def pass_if_need(func, req):
 
 def normalize(text):
     text = text.lower()
-    text = re.sub(r'[^\w\s]', '', text)
+    text = re.sub(r"[^\w\s]", "", text)
     return text.strip()
 
 
 def are_similar(user_input, candidates):
     user_input = normalize(user_input)
 
-    scores = [
-        ngram.NGram.compare(user_input, normalize(c))
-        for c in candidates
-    ]
+    scores = [ngram.NGram.compare(user_input, normalize(c)) for c in candidates]
     return max(scores) if scores else 0.0
 
 
 class Handler:
-    def __init__(self, func, condition, order: int = 0):
+    def __init__(self, func, order: int = 0):
         self.handler_func: typing.Callable[[AliceRequest], AliceResponse] = func
-        self.condition: typing.Callable[[AliceRequest], bool] = condition
+        self.conditions: List[List[typing.Callable]] = [[]]
         self.order = order
+        self.name = func.__name__
 
     def validate(self, request: AliceRequest) -> bool:
-        return self.condition(request)
+        for or_case in self.conditions:
+            is_true = 1
+            for condition in or_case:
+                is_true = min(int(condition(request)), is_true)
+            if is_true:
+                return True
+        return False
+
+    def add_condition(self, func):
+        self.conditions[-1].append(func)
+
+    def add_or(self):
+        self.conditions.append([])
 
     def __call__(self, request: AliceRequest) -> AliceResponse:
         return pass_if_need(self.handler_func, request)
@@ -54,8 +64,14 @@ def _handler_type(condition_method):
             def condition(request):
                 return condition_method(self, request, *args, **kwargs)
 
-            handler = Handler(user_func, condition, order=order)
-            self.handlers.append(handler)
+            func_name = user_func.__name__
+            handler = self.find_handler(func_name)
+
+            if not handler:
+                handler = Handler(user_func, order=order)
+                self.handlers.append(handler)
+
+            handler.add_condition(condition)
 
             self.handlers.sort(key=lambda h: h.order)
 
@@ -74,7 +90,8 @@ class Dialogs:
         self.webhook_url = webhook_url
         self.handlers: list[Handler] = []
         self.not_found_handler: typing.Optional[
-            typing.Callable[[AliceRequest], AliceResponse]] = None
+            typing.Callable[[AliceRequest], AliceResponse]
+        ] = None
 
         self._setup()
 
@@ -91,6 +108,12 @@ class Dialogs:
             return self._handle_request()
 
         self.app.register_blueprint(bp)
+
+    def find_handler(self, handler_name):
+        for handler in self.handlers:
+            if handler.name == handler_name:
+                return handler
+        return None
 
     def _handle_request(self) -> flask.Response:
         req = AliceRequest.from_flask_request(flask.request)
@@ -124,12 +147,12 @@ class Dialogs:
 
     @_handler_type
     def on_text(
-            self,
-            request: AliceRequest,
-            text: str | list[str],
-            regex: bool = False,
-            flags: int = 0,
-            remove_symbols: bool = True,
+        self,
+        request: AliceRequest,
+        text: str | list[str],
+        regex: bool = False,
+        flags: int = 0,
+        remove_symbols: bool = True,
     ) -> bool | typing.Callable:
         command = request.command or ""
 
@@ -137,7 +160,7 @@ class Dialogs:
             if not remove_symbols:
                 return s
             s = s.lower()
-            return re.sub(r'[^\w\s]', '', s).strip()
+            return re.sub(r"[^\w\s]", "", s).strip()
 
         command_norm = normalize(command)
 
@@ -155,35 +178,35 @@ class Dialogs:
 
     @_handler_type
     def on_new_session(
-            self,
-            request: AliceRequest,
-    ) -> bool | typing.Callable:
+        self,
+        request: AliceRequest,
+    ) -> Any:
 
         return request.session.new
 
     @_handler_type
     def on_ngram(
-            self,
-            request: AliceRequest,
-            synonyms: list,
-            threshold: float = 0.5,
+        self,
+        request: AliceRequest,
+        synonyms: list,
+        threshold: float = 0.5,
     ) -> bool | typing.Callable:
         return are_similar(request.command, synonyms) >= threshold
 
     @_handler_type
     def on_exact(
-            self,
-            request: AliceRequest,
-            text: str,
+        self,
+        request: AliceRequest,
+        text: str,
     ) -> bool | typing.Callable:
 
         return request.original_utterance == text
 
     @_handler_type
     def on_condition(
-            self,
-            request: AliceRequest,
-            condition: str,
+        self,
+        request: AliceRequest,
+        condition: str,
     ) -> bool | typing.Callable:
 
         return eval(condition)
